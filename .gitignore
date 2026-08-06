@@ -1,0 +1,11 @@
+node_modules/
+.env
+.claude/
+config/service-account.json
+
+# generated PDFs from local runs
+output/*
+!output/.gitkeep
+
+*.log
+.DS_Store
