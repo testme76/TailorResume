@@ -1,0 +1,4 @@
+# One URL per line. JSON Lines with a url field are also accepted.
+https://jobs.smartrecruiters.com/AECOM2/744000146182551-electrical-engineer-i
+https://jobs.workable.com/view/rvh6EXhV1DGZR1qBLQdtPE/software-developer-in-wichita-at-wsu-tech
+

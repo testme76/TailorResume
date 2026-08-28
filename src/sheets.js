@@ -16,7 +16,7 @@ export function getSheetsClient(auth) {
 export async function checkNameCollision(sheets, spreadsheetId, baseName) {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `Sheet1!${TRACKING_RANGE}`,
+    range: TRACKING_RANGE,
   });
 
   const rows = res.data.values || [];
@@ -52,7 +52,7 @@ export async function appendTrackingRow(sheets, spreadsheetId, row) {
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: `Sheet1!${TRACKING_RANGE}`,
+    range: TRACKING_RANGE,
     valueInputOption: 'USER_ENTERED',
     insertDataOption: 'INSERT_ROWS',
     requestBody: { values },
@@ -67,7 +67,7 @@ export async function appendTrackingRow(sheets, spreadsheetId, row) {
 export async function loadBulletBankFromSheet(sheets, spreadsheetId) {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: 'Sheet1!A:F',
+    range: 'A:F',
   });
 
   const rows = res.data.values || [];

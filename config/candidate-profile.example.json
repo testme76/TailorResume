@@ -1,0 +1,48 @@
+{
+  "personal": {
+    "firstName": "",
+    "lastName": "",
+    "email": "",
+    "phone": "",
+    "address": "",
+    "city": "",
+    "state": "",
+    "postalCode": "",
+    "country": "United States"
+  },
+  "links": {
+    "linkedin": "",
+    "github": "",
+    "portfolio": ""
+  },
+  "answers": [
+    {
+      "match": "can we reach out to your current employer",
+      "value": "No"
+    },
+    {
+      "match": "authorized to work",
+      "value": "Yes"
+    },
+    {
+      "match": "require sponsorship",
+      "value": ""
+    },
+    {
+      "match": "decline to answer",
+      "value": "Decline to Answer"
+    },
+    {
+      "match": "self-identification survey gender",
+      "value": "Decline to Answer"
+    },
+    {
+      "match": "referred by a wsu tech employee",
+      "value": "N/A"
+    },
+    {
+      "match": "information provided is true and accurate",
+      "value": "Yes"
+    }
+  ]
+}

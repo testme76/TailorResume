@@ -1,6 +1,9 @@
 // docs.js — Drive/Docs API operations: copy template, fill tokens, export PDF.
 import fs from 'node:fs';
+import http from 'node:http';
 import path from 'node:path';
+import crypto from 'node:crypto';
+import { spawn } from 'node:child_process';
 import { google } from 'googleapis';
 
 const SCOPES = [
@@ -9,12 +12,137 @@ const SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',
 ];
 
-/** Build a shared google-auth-library auth client from the service-account key file. */
-export function getAuth(keyFilePath) {
-  return new google.auth.GoogleAuth({
-    keyFile: keyFilePath,
-    scopes: SCOPES,
+function openBrowser(url) {
+  const commands = {
+    win32: ['rundll32.exe', ['url.dll,FileProtocolHandler', url]],
+    darwin: ['open', [url]],
+    linux: ['xdg-open', [url]],
+  };
+  const [command, args] = commands[process.platform] || commands.linux;
+  const child = spawn(command, args, { detached: true, stdio: 'ignore' });
+  child.on('error', () => {});
+  child.unref();
+}
+
+function loadOAuthClient(clientFilePath) {
+  const credential = JSON.parse(fs.readFileSync(clientFilePath, 'utf8'));
+  const client = credential.installed || credential.web;
+  if (!client?.client_id || !client?.client_secret) {
+    throw new Error(
+      `Invalid OAuth client file: ${clientFilePath}. Download a Desktop app OAuth client JSON.`
+    );
+  }
+  return client;
+}
+
+async function authorizeInteractively(client, tokenFilePath) {
+  const state = crypto.randomBytes(24).toString('hex');
+  const server = http.createServer();
+
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
   });
+
+  const { port } = server.address();
+  const redirectUri = `http://127.0.0.1:${port}/oauth2callback`;
+  const oauth2Client = new google.auth.OAuth2(
+    client.client_id,
+    client.client_secret,
+    redirectUri
+  );
+
+  const codePromise = new Promise((resolve, reject) => {
+    server.on('request', (req, res) => {
+      const url = new URL(req.url, redirectUri);
+      if (url.pathname !== '/oauth2callback') {
+        res.writeHead(404).end('Not found');
+        return;
+      }
+
+      if (url.searchParams.get('state') !== state) {
+        res.writeHead(400).end('Invalid OAuth state. You may close this window.');
+        reject(new Error('OAuth state validation failed.'));
+        return;
+      }
+
+      const oauthError = url.searchParams.get('error');
+      if (oauthError) {
+        res.writeHead(400).end('Authorization was not completed. You may close this window.');
+        reject(new Error(`Google authorization failed: ${oauthError}`));
+        return;
+      }
+
+      const code = url.searchParams.get('code');
+      if (!code) {
+        res.writeHead(400).end('Missing authorization code. You may close this window.');
+        reject(new Error('Google did not return an authorization code.'));
+        return;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end('<h2>Authorization complete</h2><p>You can close this window and return to the terminal.</p>');
+      resolve(code);
+    });
+  });
+
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: SCOPES,
+    state,
+  });
+
+  console.log('\nGoogle authorization is required.');
+  console.log('Opening your browser. If it does not open, visit this URL:');
+  console.log(authUrl);
+  openBrowser(authUrl);
+
+  let timeout;
+  try {
+    const code = await Promise.race([
+      codePromise,
+      new Promise((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error('Google authorization timed out after 5 minutes.')),
+          5 * 60 * 1000
+        );
+      }),
+    ]);
+    const { tokens } = await oauth2Client.getToken(code);
+    if (!tokens.refresh_token) {
+      throw new Error(
+        'Google did not return a refresh token. Revoke the app grant and authorize again.'
+      );
+    }
+    oauth2Client.setCredentials(tokens);
+    await fs.promises.mkdir(path.dirname(tokenFilePath), { recursive: true });
+    await fs.promises.writeFile(tokenFilePath, JSON.stringify(tokens, null, 2), {
+      mode: 0o600,
+    });
+    console.log(`OAuth token saved to ${tokenFilePath}`);
+    return oauth2Client;
+  } finally {
+    clearTimeout(timeout);
+    server.close();
+  }
+}
+
+/** Build an OAuth client, prompting in the browser only on the first run. */
+export async function getAuth(clientFilePath, tokenFilePath) {
+  const client = loadOAuthClient(clientFilePath);
+
+  if (fs.existsSync(tokenFilePath)) {
+    const oauth2Client = new google.auth.OAuth2(
+      client.client_id,
+      client.client_secret,
+      client.redirect_uris?.[0]
+    );
+    oauth2Client.setCredentials(JSON.parse(fs.readFileSync(tokenFilePath, 'utf8')));
+    return oauth2Client;
+  }
+
+  return authorizeInteractively(client, tokenFilePath);
 }
 
 export function getDriveClient(auth) {

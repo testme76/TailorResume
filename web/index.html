@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Resume Tailor</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">LOCAL WORKSPACE</p>
+          <h1>Resume Tailor</h1>
+          <p class="subtitle">粘贴职位信息，检查内容，然后生成排版不变的简历。</p>
+        </div>
+        <div class="model-chip"><span></span><strong id="modelName">Loading</strong></div>
+      </header>
+
+      <section class="panel" aria-labelledby="jobHeading">
+        <div class="section-heading">
+          <div class="step">1</div>
+          <div>
+            <h2 id="jobHeading">职位信息</h2>
+            <p>复制整个招聘页面，格式和多余导航文字都可以保留。</p>
+          </div>
+        </div>
+
+        <label for="jd">Job description</label>
+        <textarea id="jd" class="jd-input" placeholder="在这里粘贴完整职位描述…" spellcheck="false"></textarea>
+
+        <div class="action-row">
+          <button id="pasteButton" class="button secondary" type="button">从剪贴板粘贴</button>
+          <button id="extractButton" class="button secondary" type="button">识别公司和职位</button>
+        </div>
+
+        <div class="metadata-grid">
+          <div>
+            <label for="company">Company</label>
+            <input id="company" autocomplete="organization" placeholder="例如 Stripe" />
+          </div>
+          <div>
+            <label for="role">Role</label>
+            <input id="role" autocomplete="organization-title" placeholder="例如 Software Engineer" />
+          </div>
+        </div>
+
+        <button id="prepareButton" class="button primary wide" type="button">生成预览</button>
+      </section>
+
+      <section id="previewPanel" class="panel hidden" aria-labelledby="previewHeading">
+        <div class="section-heading">
+          <div class="step">2</div>
+          <div>
+            <h2 id="previewHeading">检查生成内容</h2>
+            <p>可以直接修改任何字段。红色计数表示低于最低长度或超过模板上限。</p>
+          </div>
+        </div>
+        <div id="previewFields" class="preview-fields"></div>
+        <button id="publishButton" class="button primary wide" type="button">确认并生成 Google Doc + PDF</button>
+      </section>
+
+      <section id="resultPanel" class="panel result-panel hidden" aria-live="polite">
+        <div class="success-mark">✓</div>
+        <div>
+          <h2>简历已生成</h2>
+          <p id="resultFilename"></p>
+          <div class="action-row">
+            <a id="docLink" class="button primary" target="_blank" rel="noreferrer">打开 Google Doc</a>
+            <a id="pdfLink" class="button secondary" target="_blank" rel="noreferrer">查看 PDF</a>
+          </div>
+        </div>
+      </section>
+
+      <div id="status" class="status hidden" role="status" aria-live="polite"></div>
+    </main>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

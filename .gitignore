@@ -2,6 +2,19 @@ node_modules/
 .env
 .claude/
 config/service-account.json
+config/oauth-client.json
+config/oauth-token.json
+config/oauth-token.*.json
+config/candidate-profile.json
+config/apply-settings.json
+
+# local scratch files
+tmp/
+
+# local browser state and application audit data
+data/application-history.jsonl
+data/application-queue.txt
+output/application-audit/
 
 # generated PDFs from local runs
 output/*
