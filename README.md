@@ -141,6 +141,12 @@ preview, then confirm before any Google Doc or PDF is created.
 The application runner uses a persistent local Chrome profile and deterministic ATS
 adapters. It does not use an AI browser agent or discover/filter jobs. Unsupported
 sites, CAPTCHAs, and unknown required questions are logged as `needs_attention`.
+In headed mode, SmartRecruiters CAPTCHA pages stay open for a bounded manual solve;
+the runner resumes automatically after the challenge disappears.
+Profile policies can skip jobs that require security clearance, U.S. citizenship,
+or required questions such as professional references. Answer rules may use `"valueFrom":
+"job.salaryHighEnd"` to deterministically select the highest amount in the posted
+salary or compensation range.
 
 Copy and complete the local configuration files first:
 
@@ -164,9 +170,22 @@ Fill an application but stop before submission (the default):
 npm.cmd run apply -- --url "https://jobs.workable.com/view/..."
 ```
 
+A single URL may also be passed directly:
+
+```powershell
+npm.cmd run apply -- "https://jobs.smartrecruiters.com/..."
+```
+
 For live submission, both set `submit.enabled` to `true` in
 `config/apply-settings.json` and pass `--submit`. Process a manually curated queue
 with `--queue data/application-queue.txt`. Every result is appended to
 `data/application-history.jsonl`, with screenshots under `output/application-audit/`.
+
+## Chrome tailoring extension
+
+The unpacked Manifest V3 extension in `extension/` reads the current job posting and
+generates its tailored resume through the local app. It intentionally does not fill or
+submit application forms. Successfully inspected jobs are remembered by canonical URL
+so duplicate reviews are skipped. See `extension/README.md` for installation and usage.
 
 ## Build prompt

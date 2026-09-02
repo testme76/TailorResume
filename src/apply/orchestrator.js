@@ -1,8 +1,13 @@
 import { prepareTailor, publishTailor } from '../pipeline.js';
 import { ApplicationAudit } from './audit/logger.js';
 import { detectAdapter } from './ats/index.js';
-import { NeedsAttentionError } from './errors.js';
+import { NeedsAttentionError, SkipApplicationError } from './errors.js';
 import { inspectApplicationFields } from './forms/dom.js';
+import { findRequiredSkipQuestion } from './policies/questions.js';
+import {
+  findSecurityClearanceRequirement,
+  findUsCitizenshipRequirement,
+} from './policies/job.js';
 
 function assertJob(job) {
   if (!job?.company?.trim()) throw new NeedsAttentionError('Could not extract the company name.');
@@ -53,10 +58,23 @@ export class ApplicationOrchestrator {
       await this.page.waitForTimeout(this.settings.browser?.settleMs || 1500);
       job = assertJob(await adapter.extractJob(this.page));
 
+      if (this.profile.skipIfSecurityClearanceRequired === true) {
+        const requirement = findSecurityClearanceRequirement(job.jd);
+        if (requirement) {
+          throw new SkipApplicationError('Job requires a security clearance.', { requirement });
+        }
+      }
+      if (this.profile.skipIfUsCitizenshipRequired === true) {
+        const requirement = findUsCitizenshipRequirement(job.jd);
+        if (requirement) {
+          throw new SkipApplicationError('Job requires U.S. citizenship.', { requirement });
+        }
+      }
+
       if (this.inspectOnly) {
         let fields;
         if (this.inspectForm) {
-          await adapter.openApplication(this.page);
+          await adapter.openApplication(this.page, { settings: this.settings });
           fields = await inspectApplicationFields(this.page);
         }
         return this.audit.append({
@@ -65,9 +83,20 @@ export class ApplicationOrchestrator {
         });
       }
 
+      await adapter.openApplication(this.page, { settings: this.settings });
+      const applicationFields = await inspectApplicationFields(this.page);
+      const skipField = findRequiredSkipQuestion(
+        applicationFields,
+        this.profile.skipIfRequiredQuestions || []
+      );
+      if (skipField) {
+        throw new SkipApplicationError('Application requires a question configured for skipping.', {
+          field: skipField.question,
+        });
+      }
+
       const prepared = await this.tailor(job);
       resume = await this.publish(prepared);
-      await adapter.openApplication(this.page);
       const unresolved = await adapter.fillApplication(this.page, {
         profile: this.profile,
         resumePath: resume.pdfPath,
@@ -96,11 +125,14 @@ export class ApplicationOrchestrator {
         role: job.role, resumePath: resume.pdfPath, screenshotPath,
       });
     } catch (error) {
+      const outcomeLabel = error instanceof SkipApplicationError ? 'skipped' : 'needs_attention';
       const screenshotPath = await this.audit.screenshot(
         this.page,
-        `${job?.company || adapter?.id || 'unknown'}_needs_attention`
+        `${job?.company || adapter?.id || 'unknown'}_${outcomeLabel}`
       );
-      const status = error instanceof NeedsAttentionError ? 'needs_attention' : 'failed';
+      const status = error instanceof SkipApplicationError
+        ? 'skipped'
+        : error instanceof NeedsAttentionError ? 'needs_attention' : 'failed';
       return this.audit.append({
         status,
         sourceUrl,

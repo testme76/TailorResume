@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TailorResume</title>
+    <link rel="stylesheet" href="sidepanel.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">TAILORRESUME</p>
+          <h1>Tailor this job</h1>
+        </div>
+        <span id="connection" class="connection">Checking local service…</span>
+      </header>
+
+      <section>
+        <p id="pageUrl" class="page-url">Open a job posting in the current tab.</p>
+        <button id="inspectButton" type="button">Read current job page</button>
+        <p class="hint">Tip: select only the job description first if the page contains lots of unrelated text.</p>
+      </section>
+
+      <section id="history">
+        <div class="history-heading">
+          <div>
+            <p class="eyebrow">INSPECTION HISTORY</p>
+            <strong id="historyLabel">Checking…</strong>
+          </div>
+          <span id="historyBadge" class="badge">—</span>
+        </div>
+        <p id="historyDetails" class="hint"></p>
+      </section>
+
+      <section>
+        <label for="company">Company</label>
+        <input id="company" autocomplete="organization">
+        <label for="role">Role</label>
+        <input id="role" autocomplete="off">
+        <label for="jd">Job description</label>
+        <textarea id="jd" rows="14" placeholder="Read the page, or paste the complete job description here."></textarea>
+        <button id="generateButton" class="primary" type="button">Generate tailored resume</button>
+      </section>
+
+      <section id="result" class="result hidden">
+        <p class="eyebrow">READY</p>
+        <strong id="filename"></strong>
+        <p id="snapshotInfo" class="hint"></p>
+        <div class="links">
+          <a id="pdfLink" target="_blank" rel="noreferrer">Open PDF</a>
+          <a id="docLink" target="_blank" rel="noreferrer">Open Google Doc</a>
+        </div>
+      </section>
+
+      <p id="status" class="status hidden" role="status"></p>
+      <p class="footer">This extension does not access or fill application forms.</p>
+    </main>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

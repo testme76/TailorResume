@@ -3,9 +3,11 @@ import {
   dismissCookieDialogs,
   fillConfiguredAnswers,
   fillPersonalFields,
+  getAccessRestriction,
   hasCaptcha,
   listInvalidRequiredFields,
   uploadResume,
+  waitForCaptchaResolution,
 } from '../forms/dom.js';
 import { extractJsonLdJob, extractOpenGraphJob, extractVisibleJob } from './common.js';
 
@@ -17,7 +19,7 @@ export const smartRecruitersAdapter = {
   async extractJob(page) {
     return await extractJsonLdJob(page) || await extractOpenGraphJob(page) || extractVisibleJob(page);
   },
-  async openApplication(page) {
+  async openApplication(page, { settings = {} } = {}) {
     await dismissCookieDialogs(page);
     const link = page.getByRole('link', { name: /i['’]?m interested/i }).first();
     if (!await link.isVisible().catch(() => false)) {
@@ -26,13 +28,33 @@ export const smartRecruitersAdapter = {
     await page.goto(await link.getAttribute('href'), { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
     if (await hasCaptcha(page)) {
-      throw new NeedsAttentionError('SmartRecruiters presented a CAPTCHA.', { captcha: true });
+      if (settings.browser?.headless === true) {
+        throw new NeedsAttentionError('SmartRecruiters presented a CAPTCHA in headless mode.', {
+          captcha: true,
+        });
+      }
+      const timeoutMs = settings.browser?.captchaWaitMs || 300_000;
+      console.log(`  CAPTCHA detected. Complete it in Chrome within ${Math.round(timeoutMs / 60_000)} minutes; the runner will continue automatically.`);
+      const resolved = await waitForCaptchaResolution(page, { timeoutMs });
+      if (!resolved) {
+        throw new NeedsAttentionError('SmartRecruiters CAPTCHA was not completed before timeout.', {
+          captcha: true,
+        });
+      }
+      await page.waitForTimeout(1500);
+    }
+    const restriction = await getAccessRestriction(page);
+    if (restriction) {
+      throw new NeedsAttentionError(
+        'SmartRecruiters temporarily restricted this browser or network. Stop retrying and apply manually later.',
+        { accessRestricted: true, message: restriction }
+      );
     }
   },
-  async fillApplication(page, { profile, resumePath }) {
+  async fillApplication(page, { profile, resumePath, job }) {
     await fillPersonalFields(page, profile.personal);
     await uploadResume(page, resumePath);
-    return fillConfiguredAnswers(page, profile.answers || []);
+    return fillConfiguredAnswers(page, profile.answers || [], { job });
   },
   async validate(page, unresolved = []) {
     const invalid = await listInvalidRequiredFields(page);

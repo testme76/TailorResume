@@ -8,12 +8,16 @@ import { fileURLToPath } from 'node:url';
 
 import {
   extractJobMetadata,
+  generateCompanyInterest,
   getTokenMinimums,
   getTokenLimits,
   prepareTailor,
   publishTailor,
   ROOT,
 } from './pipeline.js';
+import { ApplicationStore } from './applications/store.js';
+import { createApplicationSnapshot } from './applications/snapshot.js';
+import { JobStatusStore } from './applications/status-store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = path.join(ROOT, 'web');
@@ -21,6 +25,8 @@ const OUTPUT_ROOT = path.join(ROOT, 'output');
 const HOST = '127.0.0.1';
 const PORT = Number.parseInt(process.env.RESUME_APP_PORT || '4317', 10);
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
+const applicationStore = new ApplicationStore();
+const jobStatusStore = new JobStatusStore();
 
 const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
@@ -128,6 +134,88 @@ async function handleRequest(req, res) {
       ...result,
       pdfUrl: `/output/${encodeURIComponent(result.pdfFilename)}`,
     });
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/applications') {
+    const body = await readJsonBody(req);
+    let { company, role } = body;
+    if (!company?.trim() || !role?.trim()) {
+      const metadata = await extractJobMetadata(body.jd);
+      company ||= metadata.company;
+      role ||= metadata.role;
+    }
+    const snapshot = await createApplicationSnapshot({
+      url: body.url,
+      jd: body.jd,
+      company,
+      role,
+      store: applicationStore,
+    });
+    sendJson(res, 201, snapshot);
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/job-status') {
+    const jobUrl = url.searchParams.get('url');
+    if (!jobUrl) {
+      sendJson(res, 400, { error: 'Job URL is required.' });
+      return;
+    }
+    let status = jobStatusStore.get(jobUrl);
+    const snapshot = applicationStore.latest(jobUrl);
+    if (snapshot && (status.status === 'new' || !status.jd)) {
+      status = jobStatusStore.markInspected({
+        url: jobUrl,
+        company: snapshot.job.company,
+        role: snapshot.job.role,
+        jd: snapshot.job.jd,
+        at: snapshot.createdAt,
+      });
+    }
+    sendJson(res, 200, status);
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/job-status') {
+    const body = await readJsonBody(req);
+    if (!body.url) {
+      sendJson(res, 400, { error: 'Job URL is required.' });
+      return;
+    }
+    sendJson(res, 200, jobStatusStore.update(body));
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/company-interest') {
+    const body = await readJsonBody(req);
+    const snapshot = applicationStore.get(body.applicationId);
+    if (!snapshot) {
+      sendJson(res, 404, { error: 'Application snapshot not found.' });
+      return;
+    }
+    sendJson(res, 200, { answer: await generateCompanyInterest(snapshot) });
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/applications/latest') {
+    const jobUrl = url.searchParams.get('url');
+    if (!jobUrl) {
+      sendJson(res, 400, { error: 'Job URL is required.' });
+      return;
+    }
+    sendJson(res, 200, applicationStore.latest(jobUrl));
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname.startsWith('/api/applications/')) {
+    const applicationId = decodeURIComponent(url.pathname.slice('/api/applications/'.length));
+    const snapshot = applicationStore.get(applicationId);
+    if (!snapshot) {
+      sendJson(res, 404, { error: 'Application snapshot not found.' });
+      return;
+    }
+    sendJson(res, 200, snapshot);
     return;
   }
 

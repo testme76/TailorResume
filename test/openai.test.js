@@ -3,10 +3,35 @@ import test from 'node:test';
 
 import {
   extractJobMetadata,
+  generateCompanyInterest,
   generateTailoredContent,
   parseJsonResponse,
   validate,
 } from '../src/openai.js';
+
+test('generateCompanyInterest grounds a structured answer in the job and profile', async () => {
+  let request;
+  const client = {
+    responses: {
+      create: async (value) => {
+        request = value;
+        return { status: 'completed', output_text: '{"answer":"I am interested in Acme."}' };
+      },
+    },
+  };
+  const answer = await generateCompanyInterest(client, {
+    job: { company: 'Acme', role: 'Engineer', jd: 'Build reliable distributed systems.' },
+    profile: { summary: 'Backend engineer', skills: 'Go', experience: [] },
+  });
+  assert.equal(answer, 'I am interested in Acme.');
+  assert.equal(request.text.format.name, 'company_interest');
+  assert.match(request.instructions, /never invent company facts/i);
+  assert.match(request.instructions, /plain, direct language and short sentences/i);
+  assert.match(request.instructions, /I am particularly excited/);
+  assert.match(request.instructions, /60 to 90 words/);
+  assert.match(request.input, /Build reliable distributed systems/);
+  assert.match(request.input, /Backend engineer/);
+});
 
 test('parseJsonResponse parses valid structured output', () => {
   assert.deepEqual(parseJsonResponse('{"SUMMARY":"Focused"}'), { SUMMARY: 'Focused' });

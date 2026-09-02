@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "TailorResume",
+  "version": "0.8.1",
+  "description": "Read the current job posting and generate a tailored resume with the local TailorResume service.",
+  "permissions": ["activeTab", "scripting", "sidePanel", "tabs"],
+  "host_permissions": [
+    "<all_urls>",
+    "http://127.0.0.1:4317/*",
+    "http://127.0.0.1:4318/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Open TailorResume" },
+  "side_panel": { "default_path": "sidepanel.html" }
+}

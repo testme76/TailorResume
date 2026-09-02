@@ -6,3 +6,11 @@ export class NeedsAttentionError extends Error {
   }
 }
 
+export class SkipApplicationError extends Error {
+  constructor(message, details = {}) {
+    super(message);
+    this.name = 'SkipApplicationError';
+    this.details = details;
+  }
+}
+

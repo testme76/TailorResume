@@ -46,6 +46,65 @@ export async function extractJobMetadata(client, { jd }) {
   return parseJsonResponse(response.output_text);
 }
 
+/** Write a concise, grounded response to a company's "why us" question. */
+export async function generateCompanyInterest(client, { job, profile }) {
+  const experience = [...(profile.experience || []), ...(profile.projects || [])]
+    .map((item) => ({
+      organization: item.company || item.name || '',
+      title: item.title || '',
+      bullets: item.bullets || [],
+    }));
+  const response = await client.responses.create({
+    model: MODEL,
+    instructions: [
+      'Write a first-person answer to why the candidate is interested in this company and role.',
+      'Use only the supplied job posting and candidate evidence; never invent company facts, values, products, or candidate experience.',
+      'Use plain, direct language and short sentences. Write the way a thoughtful person would answer in conversation.',
+      'Give one concrete reason the work is appealing and briefly connect it to one supported candidate strength.',
+      'Do not summarize the whole job description or list several qualifications.',
+      'Avoid corporate filler, exaggerated enthusiasm, flattery, and polished marketing language.',
+      'Do not use phrases such as "I am particularly excited," "I am drawn to," "aligns with my background," "the opportunity to," "I would be thrilled," or "perfect fit."',
+      'Prefer simple wording such as "I like," "I want," "I have worked on," and "That is the kind of work I want to keep doing."',
+      'Do not use a greeting, heading, bullets, Markdown, or a closing.',
+      'Write 60 to 90 words in one paragraph. Stop when the reason is clear.',
+    ].join(' '),
+    input: [
+      `Company: ${job.company}`,
+      `Role: ${job.role}`,
+      '',
+      'Job posting:',
+      job.jd,
+      '',
+      'Candidate evidence:',
+      JSON.stringify({ summary: profile.summary || '', skills: profile.skills || '', experience }, null, 2),
+    ].join('\n'),
+    max_output_tokens: 500,
+    reasoning: { effort: 'low' },
+    text: {
+      verbosity: 'low',
+      format: {
+        type: 'json_schema',
+        name: 'company_interest',
+        strict: true,
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+          additionalProperties: false,
+        },
+      },
+    },
+  });
+  if (!response.output_text) {
+    throw new Error(`OpenAI returned no company-interest answer (status: ${response.status}).`);
+  }
+  const { answer } = parseJsonResponse(response.output_text);
+  if (typeof answer !== 'string' || !answer.trim()) {
+    throw new Error('OpenAI returned an empty company-interest answer.');
+  }
+  return answer.trim();
+}
+
 function buildInstructions() {
   return [
     'You are a precise resume-writing assistant.',

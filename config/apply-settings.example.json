@@ -5,6 +5,7 @@
     "profileDirectory": "./tmp/apply-browser-profile",
     "timeoutMs": 15000,
     "navigationTimeoutMs": 60000,
+    "captchaWaitMs": 300000,
     "settleMs": 1500
   },
   "submit": {
@@ -15,4 +16,3 @@
     "screenshotDirectory": "./output/application-audit"
   }
 }
-

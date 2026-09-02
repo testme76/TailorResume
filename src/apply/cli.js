@@ -21,6 +21,7 @@ function parseArgs(argv) {
     }
     else if (value === '--submit') args.submit = true;
     else if (value === '--headless') args.headless = true;
+    else if (/^https?:\/\//i.test(value)) args.urls.push(value);
     else throw new Error(`Unknown argument: ${value}`);
   }
   return args;

@@ -26,11 +26,11 @@ export const workableAdapter = {
     await button.click();
     await page.getByRole('heading', { name: /personal information/i }).waitFor({ state: 'visible' });
   },
-  async fillApplication(page, { profile, resumePath }) {
+  async fillApplication(page, { profile, resumePath, job }) {
     if (await hasCaptcha(page)) throw new NeedsAttentionError('Workable presented a CAPTCHA.');
     await fillPersonalFields(page, profile.personal);
     await uploadResume(page, resumePath);
-    return fillConfiguredAnswers(page, profile.answers || []);
+    return fillConfiguredAnswers(page, profile.answers || [], { job });
   },
   async validate(page, unresolved = []) {
     const invalid = await listInvalidRequiredFields(page);

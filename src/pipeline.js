@@ -76,6 +76,17 @@ export async function extractJobMetadata(jd) {
   return openaiLib.extractJobMetadata(client, { jd: normalizedJd });
 }
 
+export async function generateCompanyInterest({ job, profile }) {
+  if (!job || !profile) throw new Error('An application snapshot is required.');
+  const normalizedJob = {
+    jd: assertText(job.jd, 'Job description', 40),
+    company: assertText(job.company, 'Company'),
+    role: assertText(job.role, 'Role'),
+  };
+  const client = openaiLib.getClient(requireEnv('OPENAI_API_KEY'));
+  return openaiLib.generateCompanyInterest(client, { job: normalizedJob, profile });
+}
+
 export async function prepareTailor({ jd, company, role }) {
   const normalizedJd = assertText(jd, 'Job description', 40);
   const normalizedCompany = assertText(company, 'Company');

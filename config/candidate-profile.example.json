@@ -15,6 +15,38 @@
     "github": "",
     "portfolio": ""
   },
+  "education": [
+    {
+      "school": "",
+      "degree": "",
+      "field": "",
+      "startDate": "YYYY-MM",
+      "endDate": "YYYY-MM"
+    }
+  ],
+  "experience": [
+    {
+      "section": "Role 1",
+      "company": "",
+      "title": "",
+      "location": "",
+      "startDate": "YYYY-MM",
+      "endDate": "YYYY-MM"
+    }
+  ],
+  "projects": [
+    {
+      "section": "Project 1",
+      "name": "",
+      "startDate": "YYYY-MM",
+      "endDate": "YYYY-MM"
+    }
+  ],
+  "skipIfRequiredQuestions": [
+    "professional references"
+  ],
+  "skipIfSecurityClearanceRequired": false,
+  "skipIfUsCitizenshipRequired": false,
   "answers": [
     {
       "match": "can we reach out to your current employer",
@@ -26,7 +58,11 @@
     },
     {
       "match": "require sponsorship",
-      "value": ""
+      "value": "No"
+    },
+    {
+      "match": "salary expectations",
+      "valueFrom": "job.salaryHighEnd"
     },
     {
       "match": "decline to answer",
@@ -43,6 +79,18 @@
     {
       "match": "information provided is true and accurate",
       "value": "Yes"
+    },
+    {
+      "match": "previously worked for example company",
+      "value": "No"
+    },
+    {
+      "match": "application data privacy consent",
+      "value": ["Yes", "I agree", "Accept", "Acknowledge"]
+    },
+    {
+      "match": "how did you hear about this job",
+      "value": ["Job Board", "Other"]
     }
   ]
 }

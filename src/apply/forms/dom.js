@@ -1,5 +1,6 @@
 import { NeedsAttentionError } from '../errors.js';
 import { answerValues, findAnswerRule, normalizeText } from './answers.js';
+import { resolveRuleValues } from '../policies/salary.js';
 
 export async function dismissCookieDialogs(page) {
   for (const name of [/decline all/i, /reject all/i, /only necessary/i, /accept all/i]) {
@@ -14,6 +15,28 @@ export async function dismissCookieDialogs(page) {
 export async function hasCaptcha(page) {
   if (/captcha/i.test(await page.locator('body').innerText().catch(() => ''))) return true;
   return page.frames().some((frame) => /captcha|challenge/i.test(frame.url()));
+}
+
+export function detectAccessRestrictionText(text) {
+  const match = String(text || '').match(/access (?:is |has been )?(?:temporarily|temporally) restricted|temporarily blocked|access denied/i);
+  return match ? match[0] : null;
+}
+
+export async function getAccessRestriction(page) {
+  const text = await page.locator('body').innerText().catch(() => '');
+  return detectAccessRestrictionText(text);
+}
+
+export async function waitForCaptchaResolution(page, {
+  timeoutMs = 300_000,
+  pollMs = 1000,
+} = {}) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!await hasCaptcha(page)) return true;
+    await page.waitForTimeout(pollMs);
+  }
+  return false;
 }
 
 async function fillFirst(page, selectors, value) {
@@ -168,7 +191,7 @@ async function chooseOption(page, input, expectedValues) {
   return false;
 }
 
-export async function fillConfiguredAnswers(page, rules, { onlyCustomNames = false } = {}) {
+export async function fillConfiguredAnswers(page, rules, { onlyCustomNames = false, job } = {}) {
   const unresolved = [];
   const handledGroups = new Set();
   const inputs = page.locator('input, textarea, select');
@@ -198,7 +221,11 @@ export async function fillConfiguredAnswers(page, rules, { onlyCustomNames = fal
       continue;
     }
 
-    const values = answerValues(rule);
+    const values = rule.valueFrom ? resolveRuleValues(rule, { job }) : answerValues(rule);
+    if (values.length === 0) {
+      if (required) unresolved.push(question);
+      continue;
+    }
     if (['radio', 'checkbox'].includes(type)) {
       if (!await chooseOption(page, input, values)) unresolved.push(question);
     } else if (await input.evaluate((element) => element.tagName === 'SELECT')) {
