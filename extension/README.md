@@ -19,10 +19,17 @@ fill, upload to, or submit an application form.
 2. Verify or edit Company, Role, and Job description.
 3. Click **Generate tailored resume**.
 4. Open the resulting PDF and attach it to the application manually.
+5. Use **Generate answer** under **Why this company**, edit the draft if needed, and
+   copy it into the application yourself.
 
 After a successful read, the extension stores the canonical job URL together with its
 JD, company, role, and inspection time. Opening the same job later shows **Already
 inspected** and restores the saved details instead of inspecting or calling the model
 again. Existing application snapshots are also treated as previously inspected.
+
+The generated snapshot is bound to its browser tab. Navigating from a job-description
+URL to a different application URL in the same tab keeps the correct resume and
+Why-this-company draft. When an application link opens a new tab, the new tab inherits
+the source tab's binding. The card always names the company and role it is bound to.
 
 The extension tries local ports 4317 and 4318.

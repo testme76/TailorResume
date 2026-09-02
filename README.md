@@ -186,6 +186,8 @@ with `--queue data/application-queue.txt`. Every result is appended to
 The unpacked Manifest V3 extension in `extension/` reads the current job posting and
 generates its tailored resume through the local app. It intentionally does not fill or
 submit application forms. Successfully inspected jobs are remembered by canonical URL
-so duplicate reviews are skipped. See `extension/README.md` for installation and usage.
+so duplicate reviews are skipped. Tailored snapshots and Why-this-company drafts stay
+bound when moving from a job page to a different application URL. See
+`extension/README.md` for installation and usage.
 
 ## Build prompt

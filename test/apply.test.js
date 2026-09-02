@@ -105,6 +105,32 @@ test('citizenship policy skips citizen-only jobs but permits permanent residents
     findUsCitizenshipRequirement('U.S. citizenship is not required for this role.'),
     null
   );
+  assert.equal(
+    findUsCitizenshipRequirement(
+      'U.S. Person status is required under ITAR. A U.S. Person includes U.S. citizens, lawful permanent residents, and protected individuals.'
+    ),
+    null
+  );
+  assert.equal(
+    findUsCitizenshipRequirement([
+      'Candidates must qualify as a U.S. Person.',
+      'This includes U.S. citizens,',
+      'lawful permanent residents (green card holders), and protected persons.',
+    ].join('\n')),
+    null
+  );
+  assert.equal(
+    findUsCitizenshipRequirement(
+      'U.S. citizenship is required for this position. Lawful permanent residents are not eligible.'
+    ),
+    'U.S. citizenship is required for this position. Lawful permanent residents are not eligible.'
+  );
+  assert.equal(
+    findUsCitizenshipRequirement(
+      'U.S. citizenship is required. We are an equal opportunity employer regardless of permanent resident status.'
+    ),
+    'U.S. citizenship is required. We are an equal opportunity employer regardless of permanent resident status.'
+  );
 });
 
 test('SmartRecruiters temporary restriction text is recognized', () => {

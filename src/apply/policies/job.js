@@ -18,11 +18,29 @@ export function findSecurityClearanceRequirement(jobDescription) {
 
 export function findUsCitizenshipRequirement(jobDescription) {
   const lines = String(jobDescription || '').split(/\r?\n/);
-  for (const rawLine of lines) {
+  const normalizedLines = lines.map((line) => normalizeText(line));
+  for (const [index, rawLine] of lines.entries()) {
     const line = normalizeText(rawLine);
     if (!line || !/\b(u s|united states|us)\b.{0,25}\bcitizen(ship)?\b/.test(line)) continue;
-    if (/\bcitizen(ship)?\b.{0,25}\b(or|and or)\b.{0,35}\b(permanent resident|green card|lawful permanent resident)\b/.test(line) ||
-        /\b(permanent resident|green card|lawful permanent resident)\b.{0,35}\b(or|and or)\b.{0,25}\bcitizen(ship)?\b/.test(line)) {
+
+    const context = normalizedLines
+      .slice(Math.max(0, index - 2), index + 3)
+      .filter(Boolean)
+      .join(' ');
+    const resident = String.raw`(?:lawful\s+)?permanent\s+residents?|green\s+card(?:\s+holders?)?`;
+    const residentExcluded = new RegExp(
+      String.raw`(?:\b${resident}\b.{0,45}\b(?:not|ineligible|excluded|cannot|can't|must not)\b|` +
+      String.raw`\b(?:not|no)\b.{0,35}\b${resident}\b)`
+    ).test(context);
+    const inclusiveCitizenResidentList = new RegExp(
+      String.raw`(?:\bcitizen(?:ship|s)?\b.{0,35}\b${resident}\b|` +
+      String.raw`\b${resident}\b.{0,35}\bcitizen(?:ship|s)?\b)`
+    ).test(context);
+    const usPersonDefinition = new RegExp(
+      String.raw`\bu s persons?\b.{0,220}\b(?:include|includes|including|means|defined|citizen)\b.{0,220}\b${resident}\b`
+    ).test(context);
+
+    if (!residentExcluded && (inclusiveCitizenResidentList || usPersonDefinition)) {
       continue;
     }
     if (/\b(no|not)\b.{0,20}\bcitizen(ship)?\b.{0,20}\brequired\b/.test(line) ||

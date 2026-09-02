@@ -13,8 +13,12 @@ test('Chrome extension is limited to job capture and resume tailoring', () => {
   assert.equal(manifest.name, 'TailorResume');
   assert.equal(manifest.content_scripts, undefined);
   assert.equal(manifest.optional_permissions, undefined);
+  assert.ok(manifest.permissions.includes('storage'));
   assert.doesNotMatch(source, /autofill|applied|attachDebugger|\.submit\s*\(/i);
   assert.doesNotMatch(source, /inspectButton\.disabled\s*=\s*status/);
   assert.match(source, /chrome\.tabs\.onActivated\.addListener/);
   assert.match(source, /chrome\.tabs\.onUpdated\.addListener/);
+  assert.match(source, /boundSnapshot:/);
+  assert.match(source, /\/api\/company-interest/);
+  assert.match(source, /chrome\.tabs\.onCreated\.addListener/);
 });

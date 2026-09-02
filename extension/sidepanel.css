@@ -31,6 +31,9 @@ button:disabled { cursor: wait; opacity: 0.58; }
 .result strong { display: block; margin-top: 5px; overflow-wrap: anywhere; }
 .links { display: flex; gap: 12px; margin-top: 12px; }
 .links a { color: #1f6544; font-size: 12px; font-weight: 750; }
+.button-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.button-row button:last-child { width: auto; min-width: 72px; }
+#interestAnswer { margin-top: 12px; }
 .status { margin: 0; padding: 10px 12px; border-radius: 9px; color: #6a4631; background: #f4e9df; font-size: 12px; line-height: 1.4; }
 .status.success { color: #215c3b; background: #dff1e5; }
 .status.error { color: #842e2e; background: #f7e2e2; }
