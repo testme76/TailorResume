@@ -1,3 +1,5 @@
+import { bestFrame } from './frame-selection.js';
+
 const elements = {
   company: document.querySelector('#company'),
   connection: document.querySelector('#connection'),
@@ -93,19 +95,6 @@ function readDocument() {
     siteName: clean(meta('meta[property="og:site_name"]')),
     url: location.href,
   };
-}
-
-function frameScore(frame) {
-  const text = frame.selected.length >= 40 ? frame.selected : frame.body;
-  const hits = (text.match(/responsibilit|qualification|requirements|about (the )?(job|role)|what you('|’)ll do|job description/gi) || []).length;
-  return (frame.selected.length >= 40 ? 100000 : 0) + Math.min(text.length, 80000) + hits * 2500;
-}
-
-function bestFrame(results) {
-  return results
-    .map((result) => result.result)
-    .filter((result) => result?.body?.length >= 40 || result?.selected?.length >= 40)
-    .sort((left, right) => frameScore(right) - frameScore(left))[0];
 }
 
 const snapshotKey = (tabId) => `boundSnapshot:${tabId}`;

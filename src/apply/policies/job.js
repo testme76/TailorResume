@@ -27,7 +27,7 @@ export function findUsCitizenshipRequirement(jobDescription) {
       .slice(Math.max(0, index - 2), index + 3)
       .filter(Boolean)
       .join(' ');
-    const resident = String.raw`(?:lawful\s+)?permanent\s+residents?|green\s+card(?:\s+holders?)?`;
+    const resident = String.raw`(?:(?:lawful\s+)?permanent\s+residents?|green\s+card(?:\s+holders?)?)`;
     const residentExcluded = new RegExp(
       String.raw`(?:\b${resident}\b.{0,45}\b(?:not|ineligible|excluded|cannot|can't|must not)\b|` +
       String.raw`\b(?:not|no)\b.{0,35}\b${resident}\b)`

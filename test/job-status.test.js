@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { JobStatusStore } from '../src/applications/status-store.js';
+import { isUsableInspection, JobStatusStore } from '../src/applications/status-store.js';
 
 test('JobStatusStore recognizes tracking variants and keeps one inspection', (t) => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tailor-job-status-'));
@@ -46,4 +46,25 @@ test('JobStatusStore only accepts inspected status', (t) => {
     () => store.update({ url: 'https://jobs.example.com/1', status: 'applied' }),
     /must be inspected/
   );
+});
+
+test('JobStatusStore ignores historical social-widget inspections', (t) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tailor-job-status-noise-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const filePath = path.join(directory, 'job-status.json');
+  const store = new JobStatusStore(filePath);
+  const url = 'https://jobs.jobvite.com/example/job/123';
+
+  store.markInspected({
+    url,
+    company: '',
+    role: 'Twitter Widget Iframe',
+    jd: `!function(){${'minifiedJavaScript'.repeat(100)}}`,
+  });
+
+  assert.equal(store.get(url).status, 'new');
+  assert.equal(isUsableInspection({
+    role: 'Junior Algorithm Developer',
+    jd: 'Description: Build software and algorithms for mission requirements.',
+  }), true);
 });

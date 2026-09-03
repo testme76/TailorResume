@@ -17,7 +17,7 @@ import {
 } from './pipeline.js';
 import { ApplicationStore } from './applications/store.js';
 import { createApplicationSnapshot } from './applications/snapshot.js';
-import { JobStatusStore } from './applications/status-store.js';
+import { isUsableInspection, JobStatusStore } from './applications/status-store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = path.join(ROOT, 'web');
@@ -164,7 +164,9 @@ async function handleRequest(req, res) {
     }
     let status = jobStatusStore.get(jobUrl);
     const snapshot = applicationStore.latest(jobUrl);
-    if (snapshot && (status.status === 'new' || !status.jd)) {
+    if (snapshot &&
+        isUsableInspection({ role: snapshot.job.role, jd: snapshot.job.jd }) &&
+        (status.status === 'new' || !status.jd)) {
       status = jobStatusStore.markInspected({
         url: jobUrl,
         company: snapshot.job.company,
@@ -204,7 +206,14 @@ async function handleRequest(req, res) {
       sendJson(res, 400, { error: 'Job URL is required.' });
       return;
     }
-    sendJson(res, 200, applicationStore.latest(jobUrl));
+    const snapshot = applicationStore.latest(jobUrl);
+    sendJson(
+      res,
+      200,
+      snapshot && isUsableInspection({ role: snapshot.job.role, jd: snapshot.job.jd })
+        ? snapshot
+        : null
+    );
     return;
   }
 

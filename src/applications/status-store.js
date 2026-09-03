@@ -5,10 +5,21 @@ import { ROOT } from '../pipeline.js';
 import { buildJobKey, canonicalizeJobUrl } from './store.js';
 
 const DEFAULT_FILE = path.join(ROOT, 'data', 'job-status.json');
+const NOISE_ROLE = /(?:twitter|facebook|linkedin)\s+widget|widget\s+iframe/i;
+const SCRIPT_BODY = /^(?:!function\s*\(|\(function\s*\(|webpackJsonp|var\s+webpack)/i;
 
 function cleanLabel(value, fallback = '') {
   const normalized = typeof value === 'string' ? value.trim() : '';
   return normalized || fallback;
+}
+
+export function isUsableInspection({ role, jd } = {}) {
+  const normalizedRole = String(role || '').trim();
+  const normalizedJd = String(jd || '').trim();
+  if (normalizedJd.length < 40) return false;
+  if (NOISE_ROLE.test(normalizedRole)) return false;
+  if (SCRIPT_BODY.test(normalizedJd.slice(0, 200))) return false;
+  return true;
 }
 
 export class JobStatusStore {
@@ -32,7 +43,7 @@ export class JobStatusStore {
     const canonicalUrl = canonicalizeJobUrl(url);
     const jobKey = buildJobKey(canonicalUrl);
     const stored = this.readAll()[jobKey];
-    if (stored) {
+    if (stored && isUsableInspection(stored)) {
       return {
         ...stored,
         status: stored.status === 'new' ? 'new' : 'inspected',

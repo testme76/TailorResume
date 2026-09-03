@@ -112,6 +112,12 @@ test('citizenship policy skips citizen-only jobs but permits permanent residents
     null
   );
   assert.equal(
+    findUsCitizenshipRequirement(
+      'U.S. Person Required: Must be a U.S. citizen, lawful permanent resident, or protected individual such as an asylee or refugee in compliance with ITAR / EAR regulations.'
+    ),
+    null
+  );
+  assert.equal(
     findUsCitizenshipRequirement([
       'Candidates must qualify as a U.S. Person.',
       'This includes U.S. citizens,',

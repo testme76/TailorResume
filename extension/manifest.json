@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TailorResume",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Read the current job posting and generate a tailored resume with the local TailorResume service.",
   "permissions": ["activeTab", "clipboardWrite", "scripting", "sidePanel", "storage", "tabs"],
   "host_permissions": [
