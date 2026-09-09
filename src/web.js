@@ -258,7 +258,13 @@ async function handleRequest(req, res) {
 const server = http.createServer((req, res) => {
   handleRequest(req, res).catch((error) => {
     console.error(error);
-    if (!res.headersSent) sendJson(res, 500, { error: error.message });
+    if (!res.headersSent) {
+      sendJson(res, error.statusCode || 500, {
+        error: error.message,
+        retryable: error.retryable === true,
+        cleanupRequired: error.cleanupRequired === true,
+      });
+    }
     else res.end();
   });
 });

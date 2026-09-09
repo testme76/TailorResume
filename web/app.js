@@ -33,6 +33,7 @@ const labels = {
 
 let config = { tokenLimits: {} };
 let audioContext;
+let generationId = null;
 
 function enableAudio() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -72,7 +73,12 @@ async function api(path, options = {}) {
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
   });
   const body = await response.json();
-  if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`);
+  if (!response.ok) {
+    const error = new Error(body.error || `Request failed (${response.status})`);
+    error.retryable = body.retryable;
+    error.cleanupRequired = body.cleanupRequired;
+    throw error;
+  }
   return body;
 }
 
@@ -177,6 +183,7 @@ async function prepare() {
   setBusy(elements.prepareButton, true, 'Terra 正在生成…');
   setStatus('正在根据职位要求生成 12 个字段，这通常需要几十秒…');
   elements.resultPanel.classList.add('hidden');
+  generationId = null;
   try {
     const result = await api('/api/prepare', {
       method: 'POST',
@@ -186,6 +193,7 @@ async function prepare() {
         role: elements.role.value,
       }),
     });
+    generationId = result.generationId;
     renderPreview(result.tokenValues, result.tokenLimits, result.tokenMinimums);
     playSuccessSound();
     setStatus('预览已生成。检查或修改后再确认发布。', 'success');
@@ -216,6 +224,7 @@ async function publish() {
   enableAudio();
   let tokenValues;
   try {
+    if (!generationId) throw new Error('请重新生成预览后再发布。');
     tokenValues = collectTokenValues();
   } catch (error) {
     setStatus(error.message, 'error');
@@ -228,6 +237,7 @@ async function publish() {
     const result = await api('/api/publish', {
       method: 'POST',
       body: JSON.stringify({
+        generationId,
         company: elements.company.value,
         role: elements.role.value,
         tokenValues,
@@ -241,7 +251,10 @@ async function publish() {
     playSuccessSound();
     setStatus('生成完成。', 'success');
   } catch (error) {
-    setStatus(error.message, 'error');
+    const suffix = error.cleanupRequired
+      ? ' 请检查错误信息中的 Google Doc，并在清理后重试。'
+      : error.retryable ? ' 可以安全地再次点击发布重试。' : '';
+    setStatus(`${error.message}${suffix}`, 'error');
   } finally {
     setBusy(elements.publishButton, false);
   }
@@ -263,11 +276,15 @@ elements.pasteButton.addEventListener('click', async () => {
 elements.extractButton.addEventListener('click', extractMetadata);
 elements.prepareButton.addEventListener('click', prepare);
 elements.publishButton.addEventListener('click', publish);
-elements.jd.addEventListener('input', () => {
+function invalidatePreview() {
+  generationId = null;
   elements.previewPanel.classList.add('hidden');
   elements.resultPanel.classList.add('hidden');
   clearStatus();
-});
+}
+elements.jd.addEventListener('input', invalidatePreview);
+elements.company.addEventListener('input', invalidatePreview);
+elements.role.addEventListener('input', invalidatePreview);
 
 api('/api/config')
   .then((value) => {

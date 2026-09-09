@@ -59,6 +59,26 @@ export async function appendTrackingRow(sheets, spreadsheetId, row) {
   });
 }
 
+/** Check whether a publication was already appended after an uncertain response. */
+export async function hasTrackingRow(sheets, spreadsheetId, { filename, docLink }) {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: TRACKING_RANGE,
+  });
+  const rows = res.data.values || [];
+  if (rows.length === 0) return false;
+
+  const [header, ...dataRows] = rows;
+  const normalizedHeader = header.map((value) => String(value).trim().toLowerCase());
+  const filenameCol = normalizedHeader.indexOf('filename');
+  const docLinkCol = normalizedHeader.indexOf('doc_link');
+  if (filenameCol === -1 || docLinkCol === -1) return false;
+
+  return dataRows.some(
+    (row) => row[filenameCol] === filename && row[docLinkCol] === docLink
+  );
+}
+
 /**
  * Optional: load the bullet bank from a Google Sheet instead of
  * data/bullet-bank.json, when BULLET_BANK_SHEET_ID is set.

@@ -4,6 +4,7 @@ import http from 'node:http';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
+import { pipeline as streamPipeline } from 'node:stream/promises';
 import { google } from 'googleapis';
 
 const SCOPES = [
@@ -157,15 +158,40 @@ export function getDocsClient(auth) {
  * Copy TEMPLATE_DOC_ID into OUTPUT_FOLDER_ID under `name`.
  * Returns the new file's id.
  */
-export async function copyTemplate(drive, { templateDocId, outputFolderId, name }) {
+export async function copyTemplate(
+  drive,
+  { templateDocId, outputFolderId, name, generationId }
+) {
   const res = await drive.files.copy({
     fileId: templateDocId,
     requestBody: {
       name,
       parents: [outputFolderId],
+      ...(generationId
+        ? { appProperties: { resumeGenerationId: generationId } }
+        : {}),
     },
   });
   return res.data.id;
+}
+
+/** Find a generated document after an interrupted copy request. */
+export async function findFileByGenerationId(drive, generationId) {
+  const escaped = String(generationId);
+  const res = await drive.files.list({
+    q: `appProperties has { key='resumeGenerationId' and value='${escaped}' } and trashed = false`,
+    fields: 'files(id,name)',
+    pageSize: 10,
+  });
+  return (res.data.files || [])[0] || null;
+}
+
+/** Move a generated document to Drive trash as a compensating action. */
+export async function trashFile(drive, fileId) {
+  await drive.files.update({
+    fileId,
+    requestBody: { trashed: true },
+  });
 }
 
 /**
@@ -202,17 +228,21 @@ export async function exportPdf(drive, documentId, outPath) {
     { responseType: 'stream' }
   );
 
-  await fs.promises.mkdir(path.dirname(outPath), { recursive: true });
+  const resolvedPath = path.resolve(outPath);
+  const temporaryPath = `${resolvedPath}.${crypto.randomUUID()}.part`;
+  await fs.promises.mkdir(path.dirname(resolvedPath), { recursive: true });
 
-  await new Promise((resolve, reject) => {
-    const dest = fs.createWriteStream(outPath);
-    res.data.on('error', reject);
-    dest.on('error', reject);
-    dest.on('finish', resolve);
-    res.data.pipe(dest);
-  });
-
-  return path.resolve(outPath);
+  try {
+    await streamPipeline(
+      res.data,
+      fs.createWriteStream(temporaryPath, { flags: 'wx' })
+    );
+    await fs.promises.rename(temporaryPath, resolvedPath);
+    return resolvedPath;
+  } catch (error) {
+    await fs.promises.rm(temporaryPath, { force: true }).catch(() => {});
+    throw error;
+  }
 }
 
 /** List file names currently in the output folder, for collision checking. */

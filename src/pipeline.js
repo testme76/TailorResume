@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,9 +7,12 @@ import * as docsLib from './docs.js';
 import * as naming from './naming.js';
 import * as openaiLib from './openai.js';
 import * as sheetsLib from './sheets.js';
+import { createPublisher } from './publications/publisher.js';
+import { PublicationStore } from './publications/store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(__dirname, '..');
+const publicationStore = new PublicationStore();
 
 function requireEnv(name) {
   const value = process.env[name];
@@ -55,6 +59,16 @@ async function getGoogleClients() {
     sheets: sheetsLib.getSheetsClient(auth),
   };
 }
+
+const publishPrepared = createPublisher({
+  store: publicationStore,
+  docsLib,
+  sheetsLib,
+  naming,
+  getGoogleClients,
+  requireEnv,
+  outputRoot: path.join(ROOT, 'output'),
+});
 
 async function loadBulletBank() {
   const spreadsheetId = process.env.BULLET_BANK_SHEET_ID || null;
@@ -105,7 +119,15 @@ export async function prepareTailor({ jd, company, role }) {
     role: normalizedRole,
   });
 
+  const generationId = crypto.randomUUID();
+  publicationStore.create({
+    generationId,
+    company: normalizedCompany,
+    role: normalizedRole,
+  });
+
   return {
+    generationId,
     company: normalizedCompany,
     role: normalizedRole,
     model: process.env.OPENAI_MODEL || 'gpt-5.6-sol',
@@ -145,7 +167,7 @@ function normalizeAndValidateTokenValues(tokenValues, tokenLimits, tokenMinimums
   return normalized;
 }
 
-export async function publishTailor({ company, role, tokenValues }) {
+export async function publishTailor({ generationId, company, role, tokenValues }) {
   const normalizedCompany = assertText(company, 'Company');
   const normalizedRole = assertText(role, 'Role');
   const tokenLimits = getTokenLimits();
@@ -156,42 +178,10 @@ export async function publishTailor({ company, role, tokenValues }) {
     tokenMinimums
   );
 
-  const templateDocId = requireEnv('TEMPLATE_DOC_ID');
-  const outputFolderId = requireEnv('OUTPUT_FOLDER_ID');
-  const trackingSheetId = requireEnv('TRACKING_SHEET_ID');
-  const { docs, drive, sheets } = await getGoogleClients();
-
-  const baseName = naming.buildBaseName({ company: normalizedCompany, role: normalizedRole });
-  const [sheetNames, folderNames] = await Promise.all([
-    sheetsLib.checkNameCollision(sheets, trackingSheetId, baseName),
-    docsLib.listFilesInFolder(drive, outputFolderId),
-  ]);
-  const finalBaseName = naming.resolveCollision(baseName, [...sheetNames, ...folderNames]);
-  const pdfFilename = naming.toPdfFilename(finalBaseName);
-
-  const documentId = await docsLib.copyTemplate(drive, {
-    templateDocId,
-    outputFolderId,
-    name: finalBaseName,
-  });
-  await docsLib.replaceTokens(docs, documentId, normalizedTokens);
-
-  const pdfPath = await docsLib.exportPdf(
-    drive,
-    documentId,
-    path.join(ROOT, 'output', pdfFilename)
-  );
-  const docLink = docsLib.getDocLink(documentId);
-
-  await sheetsLib.appendTrackingRow(sheets, trackingSheetId, {
-    date: naming.formatDate(),
+  return publishPrepared({
+    generationId,
     company: normalizedCompany,
     role: normalizedRole,
-    filename: pdfFilename,
-    docLink,
-    pdfLink: pdfPath,
-    status: 'generated',
+    tokenValues: normalizedTokens,
   });
-
-  return { documentId, docLink, pdfFilename, pdfPath };
 }

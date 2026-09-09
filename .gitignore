@@ -16,6 +16,7 @@ data/application-history.jsonl
 data/application-queue.txt
 data/applications/
 data/job-status.json
+data/publications/
 output/application-audit/
 
 # generated PDFs from local runs

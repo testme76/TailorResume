@@ -134,6 +134,12 @@ It opens `http://127.0.0.1:4317`. Paste a complete job posting (or use the
 clipboard button), let Terra identify the company and role, generate an editable
 preview, then confirm before any Google Doc or PDF is created.
 
+Each prepared preview receives a `generationId`. Publishing the same preview
+again returns the original result instead of creating duplicate files. Publication
+progress is stored locally under `data/publications/`: incomplete Docs and PDF
+downloads are cleaned up, while a tracking-sheet failure can be retried without
+regenerating the resume. These local state files are intentionally gitignored.
+
 ---
 
 ## Automated applications (SmartRecruiters and Workable)

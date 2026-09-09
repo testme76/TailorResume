@@ -111,8 +111,11 @@ test('generateTailoredContent uses strict JSON output and retries long fields', 
   assert.match(requests[0].instructions, /combine, split, and redistribute supported facts/);
   assert.match(requests[0].instructions, /Avoid reusing any six-word sequence/);
   assert.match(requests[0].instructions, /for infrastructure roles emphasize deployment, scalability, reliability/);
+  assert.match(requests[0].instructions, /Do not prepend a heading-style label followed by a colon/);
+  assert.match(requests[0].instructions, /Vary sentence openings naturally across adjacent bullets/);
   assert.match(requests[0].instructions, /SUMMARY must name the target job family/);
-  assert.match(requests[0].input, /write the target-role bullet first/);
+  assert.match(requests[0].input, /Write the most relevant bullet first/);
+  assert.match(requests[0].input, /never prefix them with a short topical heading and a colon/);
   assert.match(requests[0].input, /change the narrative angle aggressively/);
   assert.match(requests[0].input, /deliberately written\s+for this exact vacancy/);
   assert.doesNotMatch(requests[0].input, /Prefer the longest relevant supplied variant/);
