@@ -1,0 +1,14 @@
+{
+  "bullets": [
+    {
+      "id": "role1-api-reliability",
+      "role": "Role 1",
+      "skills": ["Node.js", "REST APIs", "monitoring"],
+      "variants": {
+        "short": "Improved API reliability through validation and monitoring.",
+        "medium": "Improved a customer-facing API by adding validation, monitoring, and recovery for common failures.",
+        "long": "Improved a customer-facing API by introducing request validation, service monitoring, and recovery procedures for common production failures."
+      }
+    }
+  ]
+}

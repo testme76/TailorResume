@@ -2,9 +2,8 @@ node_modules/
 .env
 .claude/
 config/service-account.json
-config/oauth-client.json
-config/oauth-token.json
-config/oauth-token.*.json
+config/oauth-client*.json*
+config/oauth-token*.json*
 config/candidate-profile.json
 config/apply-settings.json
 
@@ -12,6 +11,7 @@ config/apply-settings.json
 tmp/
 
 # local browser state and application audit data
+data/bullet-bank.json
 data/application-history.jsonl
 data/application-queue.txt
 data/applications/

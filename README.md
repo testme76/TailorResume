@@ -40,9 +40,11 @@ goes, type a placeholder token instead, e.g. `{{SUMMARY}}`, `{{ROLE1_BULLET1}}`,
 `{{ROLE1_BULLET2}}`, `{{SKILLS}}`. Apply real formatting (bold, bullet, size) to the
 token text itself. Never edit this doc again — only copies of it get modified.
 
-**Bullet bank** — a Google Sheet or `data/bullet-bank.json` with every bullet you've
-written across every role, tagged with skills/keywords, plus 2–3 length variants of
-key bullets (short/medium/long) so a swap never overflows its box.
+**Bullet bank** — copy `data/bullet-bank.example.json` to the gitignored local file
+`data/bullet-bank.json`, then replace the fictional entries with every bullet you've
+written across every role. Tag them with skills/keywords and provide 2–3 length
+variants of key bullets (short/medium/long) so a swap never overflows its box. You
+can use a Google Sheet instead by setting `BULLET_BANK_SHEET_ID`.
 
 **Token length configs** — `config/token-minimums.json` and
 `config/token-limits.json` map each token to its minimum and maximum character
@@ -71,6 +73,36 @@ BULLET_BANK_SHEET_ID=     # or omit if using data/bullet-bank.json
 
 ---
 
+## Quick start for a new user
+
+Each user must supply their own OpenAI API key, Google OAuth client, resume
+template, Drive output folder, tracking sheet, and bullet bank. Do not share
+`.env`, OAuth files, generated resumes, or candidate profiles between users.
+
+```powershell
+git clone https://github.com/testme76/TailorResume.git
+Set-Location TailorResume
+npm install
+Copy-Item .env.example .env
+Copy-Item data/bullet-bank.example.json data/bullet-bank.json
+```
+
+Next, complete the Google Cloud and content setup described above, place the
+downloaded OAuth client at `config/oauth-client.json`, and fill in `.env` and
+`data/bullet-bank.json` with your own values. Then authorize and verify the app:
+
+```powershell
+npm run auth
+npm test
+npm run app
+```
+
+The web app is intentionally local-only at `http://127.0.0.1:4317`. Do not
+change it to a public network address unless authentication, per-user storage,
+credential protection, and rate limiting have been added.
+
+---
+
 ## Project structure
 
 ```
@@ -80,7 +112,8 @@ BULLET_BANK_SHEET_ID=     # or omit if using data/bullet-bank.json
   token-minimums.json
   token-limits.json
 /data
-  bullet-bank.json         (optional, if not using a Sheet)
+  bullet-bank.example.json (safe fictional example committed to Git)
+  bullet-bank.json         (gitignored local content; optional if using a Sheet)
 /src
   auth.js                  # one-time browser OAuth authorization
   openai.js                # calls OpenAI Responses API, returns validated JSON
